@@ -1,0 +1,108 @@
+---
+- name: Manage a Zora node
+  hosts: localhost
+  become: true
+  vars_prompt:
+    - name: node_action
+      prompt: "Enter the action to perform (install, update, remove)"
+      private: no
+    - name: l1_rpc_url
+      prompt: "Enter your Alchemy L1 node RPC URL"
+      private: no
+
+  tasks:
+    - name: Check if running as root
+      ansible.builtin.command: id -u
+      register: uid
+      changed_when: false
+      ignore_errors: true
+      check_mode: false
+
+    - name: Fail if not running as root
+      ansible.builtin.fail:
+        msg: "This playbook must be run as root."
+      when: uid.stdout != "0"
+
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_installed
+      ignore_errors: yes
+
+    - name: Check if Docker Compose is installed
+      command: docker compose --version
+      register: docker_compose_installed
+      ignore_errors: yes
+
+    - name: Fail if Docker is not installed
+      ansible.builtin.fail:
+        msg: "Docker is not installed. Please install Docker before running this playbook."
+      when: docker_installed is failed
+
+    - name: Fail if Docker Compose is not installed
+      ansible.builtin.fail:
+        msg: "Docker Compose is not installed. Please install Docker Compose before running this playbook."
+      when: docker_compose_installed is failed
+
+    - name: Clone Zora node repository
+      ansible.builtin.git:
+        repo: 'https://github.com/conduitxyz/node.git'
+        dest: '/root/zora-node'
+        version: 'main'
+        force: yes
+      when: node_action == "install"
+
+    - name: Run configuration download script
+      ansible.builtin.shell: './download-config.py zora-mainnet-0'
+      args:
+        chdir: '/root/zora-node'
+      when: node_action == "install"
+
+    - name: Generate .env file
+      ansible.builtin.template:
+        src: env.j2
+        dest: /root/zora-node/.env
+        mode: '0755'
+      when: node_action == "install"
+
+    - name: Change op-node pprof port to avoid conflict
+      ansible.builtin.lineinfile:
+        path: /root/zora-node/docker-compose.yml
+        regexp: '- 6060:6060'
+        line: '      - 6061:6060'
+        backrefs: yes
+      when: node_action == "install" or node_action == "update"
+
+    - name: Build Zora node container
+      ansible.builtin.shell: |
+        docker compose build 
+      args:
+        chdir: /root/zora-node
+      when: node_action == "install" or node_action == "update"
+   
+    - name: Create NuLink service using Docker
+      ansible.builtin.template:
+        src: zora-node.service.j2
+        dest: /etc/systemd/system/zora-node.service
+        #vars:
+          #keystore_password: "{{ keystore_password }}"
+          #eth_password: "{{ eth_password }}"
+      when: node_action == "install"
+
+    - name: Reload systemd to pick up zora service
+      ansible.builtin.systemd:
+        daemon_reload: yes
+      when: node_action == "install"
+
+    - name: Remove zora node
+      block:
+        - name: Stop Zora node container
+          ansible.builtin.shell: |
+            docker compose down
+          args:
+            chdir: /root/zora-node
+
+        - name: Remove zora directory
+          ansible.builtin.file:
+            path: /root/zora-node
+            state: absent
+      when: node_action == "remove"      
