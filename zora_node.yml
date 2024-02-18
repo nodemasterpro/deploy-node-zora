@@ -79,7 +79,7 @@
         chdir: /root/zora-node
       when: node_action == "install" or node_action == "update"
    
-    - name: Create NuLink service using Docker
+    - name: Create zora service using Docker
       ansible.builtin.template:
         src: zora-node.service.j2
         dest: /etc/systemd/system/zora-node.service
