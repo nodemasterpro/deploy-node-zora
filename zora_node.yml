@@ -28,20 +28,18 @@
       register: docker_installed
       ignore_errors: yes
 
-    - name: Check if Docker Compose is installed
-      command: docker compose --version
-      register: docker_compose_installed
-      ignore_errors: yes
-
     - name: Fail if Docker is not installed
       ansible.builtin.fail:
         msg: "Docker is not installed. Please install Docker before running this playbook."
       when: docker_installed is failed
 
-    - name: Fail if Docker Compose is not installed
-      ansible.builtin.fail:
-        msg: "Docker Compose is not installed. Please install Docker Compose before running this playbook."
-      when: docker_compose_installed is failed
+    - name: Install Docker Compose
+      ansible.builtin.shell: |
+        curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+      args:
+        creates: /usr/local/bin/docker-compose
+      when: node_action == "install"
 
     - name: Clone Zora node repository
       ansible.builtin.git:
@@ -74,7 +72,7 @@
 
     - name: Build Zora node container
       ansible.builtin.shell: |
-        docker compose build 
+        docker-compose build 
       args:
         chdir: /root/zora-node
       when: node_action == "install" or node_action == "update"
@@ -97,7 +95,7 @@
       block:
         - name: Stop Zora node container
           ansible.builtin.shell: |
-            docker compose down
+            docker-compose down
           args:
             chdir: /root/zora-node
 
