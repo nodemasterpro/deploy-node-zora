@@ -58,8 +58,6 @@
 
     - name: Start Geth
       ansible.builtin.shell: nohup geth --http --http.api personal,eth,net,web3,txpool &
-      async: 45
-      poll: 0
       when: node_action == "install"
 
     - name: Generate JWT secret for Prysm
