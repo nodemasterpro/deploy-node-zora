@@ -1,0 +1,25 @@
+[Unit]
+Description=Prysm Beacon Node
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=/usr/bin/docker run -d \
+    -v $HOME/.eth2:/data \
+    --network="host" \
+    -v {{ jwt_secret_path }}:/jwtsecret \
+    -p 4000:4000 -p 13000:13000 -p 12000:12000/udp \
+    --name beacon-node \
+    gcr.io/prysmaticlabs/prysm/beacon-chain:stable \
+    --datadir=/data \
+    -jwt-secret=/jwtsecret \
+    --grpc-gateway-host=0.0.0.0 \
+    --execution-endpoint=http://localhost:8545
+ExecStop=/usr/bin/docker stop beacon-node
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

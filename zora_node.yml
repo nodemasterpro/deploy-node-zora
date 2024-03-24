@@ -9,6 +9,8 @@
     - name: l1_rpc_url
       prompt: "Enter your Alchemy L1 node RPC URL"
       private: no
+  vars:
+    jwt_secret_path: "/root/jwtsecret"    
 
   tasks:
     - name: Check if running as root
@@ -39,6 +41,57 @@
         chmod +x /usr/local/bin/docker-compose
       args:
         creates: /usr/local/bin/docker-compose
+      when: node_action == "install"
+
+    - name: Install dependencies (Geth)
+      block:
+        - name: Add Ethereum PPA
+          ansible.builtin.apt_repository:
+            repo: ppa:ethereum/ethereum
+
+        - name: Update repositories cache and install ethereum
+          ansible.builtin.apt:
+            update_cache: yes
+            name: ethereum
+            state: latest
+      when: node_action == "install"
+
+    - name: Start Geth
+      ansible.builtin.shell: nohup geth --http --http.api personal,eth,net,web3,txpool &
+      async: 45
+      poll: 0
+      when: node_action == "install"
+
+    - name: Generate JWT secret for Prysm
+      ansible.builtin.shell: openssl rand -hex 32 > {{ jwt_secret_path }}
+      args:
+        creates: "{{ jwt_secret_path }}"
+      when: node_action == "install"
+
+    - name: Get public IP
+      ansible.builtin.shell: curl http://checkip.amazonaws.com
+      register: beacon_node_ip
+      changed_when: false  
+
+    - name: Create Prysm Beacon service file from template
+      ansible.builtin.template:
+        src: prysm-beacon.service.j2
+        dest: /etc/systemd/system/prysm-beacon.service
+      #vars:
+      #  jwt_secret_path: "{{ jwt_secret_path }}"
+      when: node_action == "install"
+
+    - name: Reload systemd, enable and start Prysm Beacon service
+      block:
+        - name: Reload systemd daemon
+          ansible.builtin.systemd:
+            daemon_reload: yes
+
+        - name: Enable Prysm Beacon service
+          ansible.builtin.systemd:
+            name: prysm-beacon
+            enabled: yes
+            state: started
       when: node_action == "install"
 
     - name: Clone Zora node repository

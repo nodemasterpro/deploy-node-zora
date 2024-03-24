@@ -1,14 +1,14 @@
 [Unit]
 Description=Zora Node Service
-After=docker.service
-Requires=docker.service
+After=docker.service prysm-beacon.service
+Requires=docker.service prysm-beacon.service
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/root/zora-node
-ExecStart=/usr/bin/docker-compose -f docker-compose.yml up --remove-orphans
-ExecStop=/usr/bin/docker-compose -f docker-compose.yml down
+ExecStart=/usr/local/bin/docker-compose -f docker-compose.yml up --remove-orphans
+ExecStop=/usr/local/bin/docker-compose -f docker-compose.yml down
 Restart=always
 
 [Install]
