@@ -15,7 +15,7 @@ ExecStart=/usr/bin/docker run -d \
     --name beacon-node \
     gcr.io/prysmaticlabs/prysm/beacon-chain:stable \
     --datadir=/data \
-    -jwt-secret=/jwtsecret \
+    --jwt-secret=/jwtsecret \
     --grpc-gateway-host=0.0.0.0 \
     --execution-endpoint=http://localhost:8545
 ExecStop=/usr/bin/docker stop beacon-node
