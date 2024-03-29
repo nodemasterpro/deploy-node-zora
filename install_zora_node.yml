@@ -22,6 +22,11 @@
       args:
         chdir: '/root/zora-node'
 
+    - name: Get public IP
+      ansible.builtin.shell: curl http://checkip.amazonaws.com
+      register: beacon_node_ip
+      changed_when: false       
+
     - name: Generate .env file
       ansible.builtin.template:
         src: env.j2
@@ -33,6 +38,8 @@
         docker-compose build 
       args:
         chdir: /root/zora-node
+
+ 
 
     - name: Create Zora service using Docker
       ansible.builtin.template:
