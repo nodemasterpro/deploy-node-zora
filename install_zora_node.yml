@@ -1,0 +1,44 @@
+---
+- name: Install Zora Node
+  hosts: localhost
+  become: true
+  vars_prompt:
+    - name: l1_rpc_url
+      prompt: "Enter your Alchemy L1 node RPC URL"
+      private: no
+  vars:
+    l1_rpc_url: "http://localhost:8545"  # Utilisez l'URL RPC locale de Geth ou celle que vous préférez
+
+  tasks:
+    - name: Clone Zora node repository
+      ansible.builtin.git:
+        repo: 'https://github.com/conduitxyz/node.git'
+        dest: '/root/zora-node'
+        version: 'main'
+        force: yes
+
+    - name: Run configuration download script
+      ansible.builtin.shell: './download-config.py zora-mainnet-0'
+      args:
+        chdir: '/root/zora-node'
+
+    - name: Generate .env file
+      ansible.builtin.template:
+        src: env.j2
+        dest: /root/zora-node/.env
+        mode: '0755'
+
+    - name: Build Zora node container
+      ansible.builtin.shell: |
+        docker-compose build 
+      args:
+        chdir: /root/zora-node
+
+    - name: Create Zora service using Docker
+      ansible.builtin.template:
+        src: zora-node.service.j2
+        dest: /etc/systemd/system/zora-node.service
+
+    - name: Reload systemd to pick up Zora service
+      ansible.builtin.systemd:
+        daemon_reload: yes

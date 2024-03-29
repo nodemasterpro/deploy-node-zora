@@ -7,8 +7,9 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/root
+ExecStartPre=/usr/bin/docker rm -f beacon-node || true
 ExecStart=/usr/bin/docker run -d \
-    -v $HOME/.eth2:/data \
+    -v /root/.eth2:/data \
     --network="host" \
     -v {{ jwt_secret_path }}:/jwtsecret \
     -p 4000:4000 -p 13000:13000 -p 12000:12000/udp \

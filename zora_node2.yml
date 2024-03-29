@@ -4,7 +4,7 @@
   become: true
   vars_prompt:
     - name: node_action
-      prompt: "Enter the action to perform (install, update, remove)"
+      prompt: "Enter the action to perform (install,  remove)"
       private: no
     - name: l1_rpc_url
       prompt: "Enter your Alchemy L1 node RPC URL"
