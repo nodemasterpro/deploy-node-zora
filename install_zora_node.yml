@@ -6,8 +6,6 @@
     - name: l1_rpc_url
       prompt: "Enter your Alchemy L1 node RPC URL"
       private: no
-  vars:
-    l1_rpc_url: "http://localhost:8545"  # Utilisez l'URL RPC locale de Geth ou celle que vous préférez
 
   tasks:
     - name: Clone Zora node repository
@@ -22,10 +20,10 @@
       args:
         chdir: '/root/zora-node'
 
-    - name: Get public IP
-      ansible.builtin.shell: curl http://checkip.amazonaws.com
-      register: beacon_node_ip
-      changed_when: false       
+    #- name: Get public IP
+    #  ansible.builtin.shell: curl http://checkip.amazonaws.com
+    #  register: beacon_node_ip
+    #  changed_when: false       
 
     - name: Generate .env file
       ansible.builtin.template:
@@ -39,8 +37,6 @@
       args:
         chdir: /root/zora-node
 
- 
-
     - name: Create Zora service using Docker
       ansible.builtin.template:
         src: zora-node.service.j2
@@ -49,3 +45,9 @@
     - name: Reload systemd to pick up Zora service
       ansible.builtin.systemd:
         daemon_reload: yes
+
+    - name: Enable Zora node service
+      ansible.builtin.systemd:
+        name: zora-node.service
+        enabled: true
+        state: stopped

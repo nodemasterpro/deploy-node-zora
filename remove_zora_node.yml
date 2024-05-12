@@ -3,18 +3,6 @@
   hosts: localhost
   become: true
   tasks:
-    - name: Stop Prysm Beacon service
-      ansible.builtin.systemd:
-        name: prysm-beacon
-        state: stopped
-      ignore_errors: yes
-
-    - name: Remove Prysm Beacon service
-      ansible.builtin.file:
-        path: /etc/systemd/system/prysm-beacon.service
-        state: absent
-      ignore_errors: yes
-
     - name: Stop Zora Node service
       ansible.builtin.systemd:
         name: zora-node
